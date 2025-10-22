@@ -1,10 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const { getMessages, sendMessage } = require('../controllers/chatController');
-const { protect } = require('../middleware/authMiddleware');
+const { 
+    getAllThreads,
+    getCustomerThread,
+    getThreadMessages,
+    sendMessage 
+} = require('../controllers/chatController');
+const { protect, admin } = require('../middleware/authMiddleware');
 
+// All routes are protected
 router.use(protect);
 
-router.route('/messages').get(getMessages).post(sendMessage);
+// Admin routes
+router.get('/threads', admin, getAllThreads);
+router.get('/threads/:threadId', admin, getThreadMessages);
+
+// Customer routes
+router.get('/thread', getCustomerThread);
+router.post('/messages', sendMessage);
 
 module.exports = router;

@@ -89,6 +89,7 @@ const login = async (req, res) => {
     res.status(200).json({
       message: 'Login successful',
       token,
+      role: user.Role,
     });
   } catch (error) {
     console.error(error);
@@ -96,7 +97,141 @@ const login = async (req, res) => {
   }
 };
 
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
+const getProfile = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('userID', sql.Int, req.user.userID)
+      .query(`
+        SELECT UserID, Username, Email, PhoneNumber, Address, Role, CreatedAt, UpdatedAt
+        FROM Users 
+        WHERE UserID = @userID
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const userProfile = result.recordset[0];
+    res.json(userProfile);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while fetching profile' });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+  const { email, phoneNumber, address, currentPassword, newPassword } = req.body;
+  const userID = req.user.userID;
+
+  try {
+    const pool = await poolPromise;
+    
+    // First get the current user data
+    const userResult = await pool.request()
+      .input('userID', sql.Int, userID)
+      .query('SELECT PasswordHash FROM Users WHERE UserID = @userID');
+
+    if (userResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Start building the update query
+    let updateFields = [];
+    let queryParams = {};
+
+    if (email) {
+      // Check if email is already taken by another user
+      const emailCheck = await pool.request()
+        .input('email', sql.NVarChar, email)
+        .input('userID', sql.Int, userID)
+        .query('SELECT UserID FROM Users WHERE Email = @email AND UserID != @userID');
+      
+      if (emailCheck.recordset.length > 0) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+      updateFields.push('Email = @email');
+      queryParams.email = email;
+    }
+
+    if (phoneNumber) {
+      updateFields.push('PhoneNumber = @phoneNumber');
+      queryParams.phoneNumber = phoneNumber;
+    }
+
+    if (address) {
+      updateFields.push('Address = @address');
+      queryParams.address = address;
+    }
+
+    // Handle password update if provided
+    if (currentPassword && newPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, userResult.recordset[0].PasswordHash);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const newPasswordHash = await bcrypt.hash(newPassword, salt);
+      updateFields.push('PasswordHash = @newPasswordHash');
+      queryParams.newPasswordHash = newPasswordHash;
+    } else if ((currentPassword && !newPassword) || (!currentPassword && newPassword)) {
+      return res.status(400).json({ message: 'Both current and new password are required to update password' });
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    // Build and execute the update query
+    const request = pool.request();
+    request.input('userID', sql.Int, userID);
+    
+    // Add all parameters to the request
+    for (const [key, value] of Object.entries(queryParams)) {
+      request.input(key, sql.NVarChar, value);
+    }
+
+    const updateQuery = `
+      UPDATE Users 
+      SET ${updateFields.join(', ')}, UpdatedAt = GETDATE()
+      OUTPUT 
+        INSERTED.UserID,
+        INSERTED.Username,
+        INSERTED.Email,
+        INSERTED.PhoneNumber,
+        INSERTED.Address,
+        INSERTED.Role,
+        INSERTED.CreatedAt,
+        INSERTED.UpdatedAt
+      WHERE UserID = @userID
+    `;
+
+    const result = await request.query(updateQuery);
+    
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: result.recordset[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while updating profile' });
+  }
+};
+
 module.exports = {
   signUp,
   login,
+  getProfile,
+  updateProfile,
 };
