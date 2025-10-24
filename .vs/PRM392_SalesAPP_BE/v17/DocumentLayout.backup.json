@@ -68,8 +68,7 @@
               "RelativeToolTip": "controllers\\orderController.js",
               "ViewState": "AgIAAFcAAAAAAAAAAAAIwJsAAAACAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2025-10-24T03:10:18.895Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-24T03:10:18.895Z"
             },
             {
               "$type": "Document",
@@ -81,8 +80,7 @@
               "RelativeToolTip": "routes\\orderRoutes.js",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2025-10-23T13:29:29.256Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-23T13:29:29.256Z"
             },
             {
               "$type": "Document",
@@ -94,8 +92,7 @@
               "RelativeToolTip": ".env",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2025-10-23T13:00:29.356Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-23T13:00:29.356Z"
             }
           ]
         }
