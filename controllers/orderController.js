@@ -58,4 +58,100 @@ const createOrder = async (req, res) => {
     }
 };
 
-module.exports = { createOrder };
+const getAllOrders = async (req, res) => {
+    const userID = req.user.userID;
+
+    try {
+        const pool = await poolPromise;
+        const request = new sql.Request(pool);
+
+        // Query all orders for the user
+        const ordersResult = await request
+            .input('userID', sql.Int, userID)
+            .query(`
+                SELECT 
+                    OrderID, CartID, PaymentMethod, BillingAddress, OrderStatus, OrderDate
+                FROM Orders
+                WHERE UserID = @userID
+                ORDER BY OrderDate DESC
+            `);
+
+        res.status(200).json(ordersResult.recordset);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get details of a specific order
+// @route   GET /api/orders/:orderID
+// @access  Private
+const getOrderDetails = async (req, res) => {
+    // prefer param first, fallback to query for backward-compat
+    const orderID = req.params.orderID || req.query.orderID;
+    const userID = req.user && req.user.userID;
+
+    if (!orderID) {
+        console.warn('getOrderDetails: missing orderID, req.params=', req.params, 'req.query=', req.query);
+        return res.status(400).json({ message: 'orderID is required' });
+    }
+
+    const orderIdNum = parseInt(orderID, 10);
+    if (isNaN(orderIdNum)) {
+        return res.status(400).json({ message: 'orderID must be a number' });
+    }
+
+    try {
+        const pool = await poolPromise;
+
+        // Query order details
+        const request = new sql.Request(pool);
+        const orderResult = await request
+            .input('orderID', sql.Int, orderIdNum)
+            .input('userID', sql.Int, userID)
+            .query(`
+                SELECT 
+                    o.OrderID, 
+                    o.CartID, 
+                    o.PaymentMethod, 
+                    o.BillingAddress, 
+                    o.OrderStatus, 
+                    o.OrderDate,
+                    p.Amount AS PaymentAmount, 
+                    p.PaymentStatus
+                FROM Orders o
+                LEFT JOIN Payments p ON o.OrderID = p.OrderID
+                WHERE o.OrderID = @orderID AND o.UserID = @userID
+            `);
+
+        if (!orderResult.recordset || orderResult.recordset.length === 0) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        const orderDetails = orderResult.recordset[0];
+
+        // If CartID missing, skip cart items query
+        if (orderDetails.CartID) {
+            const cartRequest = new sql.Request(pool);
+            const cartItemsResult = await cartRequest
+                .input('cartID', sql.Int, orderDetails.CartID)
+                .query(`
+                    SELECT 
+                        ProductID, Quantity, Price
+                    FROM CartItems
+                    WHERE CartID = @cartID
+                `);
+            orderDetails.cartItems = cartItemsResult.recordset || [];
+        } else {
+            orderDetails.cartItems = [];
+        }
+
+        res.status(200).json(orderDetails);
+
+    } catch (error) {
+        console.error('getOrderDetails error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+module.exports = { createOrder, getAllOrders, getOrderDetails };

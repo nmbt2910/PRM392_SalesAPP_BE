@@ -106,7 +106,7 @@ const getProfile = async (req, res) => {
     const result = await pool.request()
       .input('userID', sql.Int, req.user.userID)
       .query(`
-        SELECT UserID, Username, Email, PhoneNumber, Address, Role, CreatedAt, UpdatedAt
+        SELECT UserID, Username, Email, PhoneNumber, Address, Role
         FROM Users 
         WHERE UserID = @userID
       `);
@@ -207,9 +207,8 @@ const updateProfile = async (req, res) => {
         INSERTED.Email,
         INSERTED.PhoneNumber,
         INSERTED.Address,
-        INSERTED.Role,
-        INSERTED.CreatedAt,
-        INSERTED.UpdatedAt
+        INSERTED.Role
+        
       WHERE UserID = @userID
     `;
 
