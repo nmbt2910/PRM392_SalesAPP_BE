@@ -154,4 +154,63 @@ const getOrderDetails = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
-module.exports = { createOrder, getAllOrders, getOrderDetails };
+
+// @desc    Update payment status
+// @route   PUT /api/orders/updatePaymentStatus/:orderID
+// @access  Private
+const updatePaymentStatus = async (req, res) => {
+    const orderID = parseInt(req.params.orderID, 10);
+    const { paymentStatus, orderStatus } = req.body;
+    const userID = req.user.userID;
+
+    if (isNaN(orderID)) {
+        return res.status(400).json({ message: 'Invalid order ID' });
+    }
+
+    if (!paymentStatus) {
+        return res.status(400).json({ message: 'Payment status is required' });
+    }
+
+    try {
+        const pool = await poolPromise;
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+
+        // Verify order belongs to user
+        const orderCheck = await request
+            .input('orderID', sql.Int, orderID)
+            .input('userID', sql.Int, userID)
+            .query('SELECT OrderID FROM Orders WHERE OrderID = @orderID AND UserID = @userID');
+
+        if (orderCheck.recordset.length === 0) {
+            await transaction.rollback();
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Update payment status
+        await request
+            .input('paymentStatus', sql.NVarChar, paymentStatus)
+            .query('UPDATE Payments SET PaymentStatus = @paymentStatus WHERE OrderID = @orderID');
+
+        // Update order status if provided
+        if (orderStatus) {
+            await request
+                .input('orderStatus', sql.NVarChar, orderStatus)
+                .query('UPDATE Orders SET OrderStatus = @orderStatus WHERE OrderID = @orderID');
+        }
+
+        await transaction.commit();
+        res.status(200).json({ 
+            message: 'Payment status updated successfully',
+            paymentStatus,
+            orderStatus: orderStatus || 'unchanged'
+        });
+
+    } catch (error) {
+        console.error('updatePaymentStatus error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+module.exports = { createOrder, getAllOrders, getOrderDetails, updatePaymentStatus };
