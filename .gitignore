@@ -1,0 +1,74 @@
+# Environment variables - QUAN TRỌNG: Chứa thông tin nhạy cảm
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Database configuration - Cấu hình database cá nhân
+config/db.js
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE - Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Build outputs
+dist/
+build/
+out/
+
+# Coverage directory used by testing tools
+coverage/
+*.lcov
+.nyc_output
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# SQL Server local database files
+*.mdf
+*.ldf
+*.ndf
+
+# Backup files
+*.bak
+*.backup
